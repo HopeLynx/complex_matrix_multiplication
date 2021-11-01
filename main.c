@@ -52,7 +52,7 @@ int malloc_check(struct complex_num *arr){
 }
 
 void create_test_files(){
-    //TODO сделать создание НУЖНЫХ ФАЙЛОВ ДЛЯ ТЕСТА
+    //TODO сделать создание НУЖНЫХ ФАЙЛОВ ДЛЯ ТЕСТА DONE
     int fd1 = open("cn1.dat",O_WRONLY|O_CREAT|O_TRUNC,0644);
     int fd2 = open("cn2.dat",O_WRONLY|O_CREAT|O_TRUNC,0644);
     if (fd1<0 || fd2<0) {
@@ -84,7 +84,7 @@ void create_test_files(){
 int main()
 {
     create_test_files();
-    //TODO сделать чтение файлов ДЛЯ ТЕСТА
+    //TODO сделать чтение файлов ДЛЯ ТЕСТА DONE
     int fd1 = open("cn1.dat",O_RDONLY);
     int fd2 = open("cn2.dat",O_RDONLY);
 
@@ -96,8 +96,9 @@ int main()
     int r1, c1, r2, c2;
     float tmp_re=0.0,tmp_im=0.0;
 
-    if (read(fd1,&r1,sizeof(unsigned int))>0) printf("%d\n",r1);
-    if (read(fd1,&c1,sizeof(unsigned int))>0) printf("%d\n",c1);
+    if (read(fd1,&r1,sizeof(unsigned int))<=0) perror("read error");
+    if (read(fd1,&c1,sizeof(unsigned int))<=0) perror("read error");
+    printf("%d %d\n",r1,c1);
     struct complex_num *cnm1;
     cnm1 = (struct complex_num*)malloc(r1*c1 * sizeof(struct complex_num));
     if (malloc_check(cnm1)) return 1;
@@ -105,16 +106,16 @@ int main()
         for (int j = 0; j<c1; j++){  // цикл по столбцам
             if (read(fd1,&tmp_re,sizeof(float))<0) perror("read error");
             if (read(fd1,&tmp_im,sizeof(float))<0) perror("read error");
-            printf("%f %fi ",tmp_re,tmp_im);
+            printf("%f,%fi ",tmp_re,tmp_im);
             cnm1[i*c1+j]=create_cn_params(tmp_re,tmp_im);
-            //printf("\t%f %fi",cnm1[i*c1+j].re,cnm1[i*c1+j].im);
         }
         printf("\n");
     }
     close(fd1);
 
-    if (read(fd2,&r2,sizeof(unsigned int))>0) printf("%d\n",r2);
-    if (read(fd2,&c2,sizeof(unsigned int))>0) printf("%d\n",c2);
+    if (read(fd2,&r2,sizeof(unsigned int))<=0) perror("read error");
+    if (read(fd2,&c2,sizeof(unsigned int))<=0) perror("read error");
+    printf("%d %d\n",r2,c2);
     struct complex_num *cnm2;
     cnm2 = (struct complex_num*)malloc(r2*c2 * sizeof(struct complex_num));
     if (malloc_check(cnm2)) return 1;
@@ -129,8 +130,9 @@ int main()
     }
     close(fd2);
 
-    struct complex_num *ans;
+    printf("\n");
 
+    struct complex_num *ans;
     if(c1==r2 && r1==c2){
         struct complex_num temp;
         ans = (struct complex_num*)malloc(r1*c2 * sizeof(struct complex_num));
@@ -139,29 +141,47 @@ int main()
             for(int j=0;j<c2;j++){
                 temp=create_cn();
                 for(int k=0;k<r2;k++){
-                    struct complex_num lul = multiply(cnm1[i*c1+k],cnm2[j*r2+k]);
-                    //printf("\t%f %fi",cnm1[i*c1+k].re,cnm2[j*r2+k].im);
+                    struct complex_num lul = multiply(cnm1[i*c1+k],cnm2[j+c2*k]);
+//                    printf("%f %fi * %f %fi\n",cnm1[i*c1+k].re,cnm1[i*c1+k].im,cnm2[j+c2*k].re,cnm2[j+c2*k].im);
                     temp = add(temp,lul);
                 }
                 ans[i*r1+j]=temp;
             }
         }
-        //TODO вывод в файл
-        printf("\nMatrix multiplication of A*B : ");
-        for(int i=0;i<r1;i++)
-        {
-            printf("\n\t");
-            for(int j=0;j<c2;j++)
-            {
+        //TODO вывод в файл DONE
+        int fd = open("filres.dat",O_WRONLY|O_CREAT|O_TRUNC,0644);
+        if(write(fd1,&r1,sizeof(unsigned int))<0)perror("write_ans");
+        if(write(fd1,&c2,sizeof(unsigned int))<0)perror("write_ans");
+
+        printf("Matrix multiplication of A*B:\n");
+        for(int i=0;i<r1;i++){
+            for(int j=0;j<c2;j++){
                 temp = ans[i*c2+j];
+                if(write(fd1,&temp.re,sizeof(float))<0)perror("write_ans");
+                if(write(fd1,&temp.im,sizeof(float))<0)perror("write_ans");
                 printf("\t%f %fi",temp.re,temp.im);
             }
             printf("\n");
         }
+        close(fd);
     } else printf("\nMatrix Multiplication is not possible...!!!");
-
     free(cnm1);free(cnm2);
-    // TODO вывод в файл
     free(ans);
+    /*
+    EXPECTED OUT:
+    2 3
+    1.000000,2.000000i 3.000000,4.000000i 5.000000,6.000000i
+    2.000000,4.000000i 6.000000,8.000000i 10.000000,12.000000i
+    3 2
+    1.000000,2.000000i 3.000000,4.000000i
+    2.000000,4.000000i 6.000000,8.000000i
+    3.000000,6.000000i 9.000000,12.000000i
+
+    Matrix multiplication of A*B:
+        -34.000000 72.000000i	-46.000000 172.000000i
+        -68.000000 144.000000i	-92.000000 344.000000i
+    */
+
+
     return 0;
 }
